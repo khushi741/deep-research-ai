@@ -157,3 +157,98 @@ body {
 .animate-pulse-slow {
   animation: pulse-slow 3s infinite ease-in-out;
 }
+
+/* Spinner Animation for Loader2 and activity indicators */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulsing Live Radar Indicator */
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.radar-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10B981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: radar-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Active Stage Card Pulsing Glow */
+@keyframes active-card-glow {
+  0%, 100% {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.18), inset 0 0 12px rgba(59, 130, 246, 0.05);
+  }
+  50% {
+    border-color: rgba(96, 165, 250, 0.95);
+    box-shadow: 0 0 28px rgba(59, 130, 246, 0.38), inset 0 0 20px rgba(59, 130, 246, 0.12);
+  }
+}
+
+.stage-card-active {
+  animation: active-card-glow 2.2s infinite ease-in-out;
+}
+
+/* Dynamic Moving Shimmer Gradient on Progress Bar */
+@keyframes shimmer-move {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.progress-bar-animated {
+  background: linear-gradient(
+    90deg, 
+    #3B82F6 0%, 
+    #8B5CF6 25%, 
+    #06B6D4 50%, 
+    #EC4899 75%, 
+    #3B82F6 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer-move 2.5s linear infinite !important;
+}
+
+/* Soundwave / Activity Equalizer Bar Animation */
+@keyframes soundwave {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+.soundwave-bar {
+  width: 3px;
+  background: #60A5FA;
+  border-radius: 2px;
+  animation: soundwave 1s ease-in-out infinite;
+}
+.soundwave-bar:nth-child(2) { animation-delay: 0.2s; }
+.soundwave-bar:nth-child(3) { animation-delay: 0.4s; }
+.soundwave-bar:nth-child(4) { animation-delay: 0.15s; }
+
