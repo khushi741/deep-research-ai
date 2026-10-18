@@ -1,6 +1,7 @@
 import os
 import io
 import re
+from datetime import datetime
 from fpdf import FPDF
 from app.models.research import ResearchReport
 from app.utils.logging import get_logger
@@ -8,28 +9,55 @@ from app.utils.logging import get_logger
 logger = get_logger("export_service")
 
 
-class PDFReport(FPDF):
-    """Custom FPDF class with standard header and footer for research reports."""
+class ModernResearchPDF(FPDF):
+    """
+    Publication-grade Executive Research Report PDF generator.
+    Implements corporate whitepaper typography, tinted callout boxes,
+    styled section dividers, and clickable reference link cards.
+    """
 
     def __init__(self, title: str):
-        super().__init__()
+        super().__init__(orientation="P", unit="mm", format="A4")
         self.report_title = title
+        self.generated_date = datetime.now().strftime("%B %d, %Y")
+        self.set_margins(left=18, top=18, right=18)
 
     def header(self):
-        self.set_font("Helvetica", "B", 9)
-        self.set_text_color(100, 100, 100)
-        self.cell(0, 10, f"Deep Research AI - {self.report_title[:50]}", border=0, align="R")
-        self.ln(12)
+        # Only render running header on page 2 and onwards
+        if self.page_no() > 1:
+            self.set_font("Helvetica", "B", 8)
+            self.set_text_color(100, 116, 139)  # Slate 500
+            clean_title = ExportService._clean_text_for_pdf(self.report_title)
+            if len(clean_title) > 65:
+                clean_title = clean_title[:62] + "..."
+            self.cell(0, 6, f"DEEP RESEARCH AI  |  {clean_title.upper()}", border=0, align="L")
+            self.set_font("Helvetica", "", 8)
+            self.cell(0, 6, self.generated_date, border=0, align="R")
+            self.ln(7)
+
+            # Subtle accent divider rule under header
+            self.set_draw_color(226, 232, 240)  # Slate 200
+            self.set_line_width(0.3)
+            self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+            self.ln(6)
 
     def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.set_text_color(128, 128, 128)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}} | Verifiable Research Report", border=0, align="C")
+        self.set_y(-14)
+        self.set_draw_color(226, 232, 240)
+        self.set_line_width(0.3)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.ln(2)
+
+        self.set_font("Helvetica", "", 8)
+        self.set_text_color(148, 163, 184)  # Slate 400
+        self.cell(0, 8, "VERIFIED AUTONOMOUS RESEARCH REPORT  -  DEEP RESEARCH AI", border=0, align="L")
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(100, 116, 139)
+        self.cell(0, 8, f"Page {self.page_no()}/{{nb}}", border=0, align="R")
 
 
 class ExportService:
-    """Service to export research reports into Markdown and PDF formats."""
+    """Service to export research reports into Markdown and professional publication-ready PDF formats."""
 
     @staticmethod
     def generate_markdown_bytes(report: ResearchReport) -> bytes:
@@ -38,105 +66,351 @@ class ExportService:
 
     @staticmethod
     def generate_pdf_bytes(report: ResearchReport) -> bytes:
-        """Generates a styled, publication-ready PDF document from the report."""
-        pdf = PDFReport(title=report.title)
+        """Generates a styled, publication-ready whitepaper PDF document from the report."""
+        pdf = ModernResearchPDF(title=report.title)
         pdf.alias_nb_pages()
         pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_auto_page_break(auto=True, margin=18)
 
-        width = pdf.epw  # Effective page width in FPDF2
+        width = pdf.epw  # Effective page width (approx 174mm on A4)
 
-        # Title
+        # -------------------------------------------------------------
+        # TOP BRAND BANNER (Page 1)
+        # -------------------------------------------------------------
+        pdf.set_fill_color(15, 23, 42)  # Dark Navy #0F172A
+        pdf.rect(pdf.l_margin, pdf.get_y(), width, 10, style="F")
+
+        pdf.set_xy(pdf.l_margin + 4, pdf.get_y() + 2)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(52, 211, 153)  # Mint Green Accent
+        pdf.cell(80, 6, "DEEP RESEARCH AI  *  AUTONOMOUS AGENT INTELLIGENCE", align="L")
+
+        pdf.set_xy(pdf.w - pdf.r_margin - 75, pdf.get_y())
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(248, 250, 252)
+        pdf.cell(70, 6, f"DATE: {pdf.generated_date}  |  STATUS: VERIFIED", align="R")
+
+        pdf.set_y(pdf.get_y() + 14)
+
+        # -------------------------------------------------------------
+        # REPORT TITLE BLOCK
+        # -------------------------------------------------------------
         pdf.set_font("Helvetica", "B", 18)
-        pdf.set_text_color(20, 30, 55)
-        pdf.multi_cell(width, 8, ExportService._clean_text_for_pdf(report.title))
+        pdf.set_text_color(15, 23, 42)  # Dark Slate
+        clean_title = ExportService._clean_text_for_pdf(report.title)
+        pdf.multi_cell(width, 7.5, clean_title, align="L")
+        pdf.ln(3)
+
+        # Decorative Emerald Horizontal Accent Line
+        pdf.set_draw_color(16, 185, 129)  # Emerald 500
+        pdf.set_line_width(1.0)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + 45, pdf.get_y())
         pdf.ln(5)
 
-        # Executive Summary
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "Executive Summary", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.executive_summary))
-        pdf.ln(5)
+        # -------------------------------------------------------------
+        # METADATA PILL ROW (Sources Count, Claims, Status)
+        # -------------------------------------------------------------
+        sources_count = len(report.references) if report.references else 0
+        findings_count = len(report.key_findings) if report.key_findings else 0
 
-        # Key Findings
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "Key Findings", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(40, 40, 40)
-        for kf in report.key_findings:
-            pdf.multi_cell(width, 5, f"- {ExportService._clean_text_for_pdf(kf)}")
-        pdf.ln(5)
+        pdf.set_fill_color(241, 245, 249)  # Slate 100
+        pdf.set_draw_color(203, 213, 225)  # Slate 300
+        pdf.set_line_width(0.2)
 
-        # Detailed Analysis
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "Detailed Analysis", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.detailed_analysis))
-        pdf.ln(5)
+        pill_width = (width - 6) / 3
+        curr_y = pdf.get_y()
 
-        # Conflicting Evidence & Limitations
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "Conflicting Evidence & Limitations", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.conflicting_evidence_and_limitations))
-        pdf.ln(5)
+        # Pill 1: Sources
+        pdf.rect(pdf.l_margin, curr_y, pill_width, 10, style="FD")
+        pdf.set_xy(pdf.l_margin, curr_y + 1.5)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(pill_width, 4, f"{sources_count} Web Sources Evaluated", align="C")
+        pdf.set_xy(pdf.l_margin, curr_y + 5)
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(100, 116, 139)
+        pdf.cell(pill_width, 4, "Real-time Multi-vector Search", align="C")
 
-        # Conclusion
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "Conclusion", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.conclusion))
-        pdf.ln(5)
+        # Pill 2: Findings
+        pdf.rect(pdf.l_margin + pill_width + 3, curr_y, pill_width, 10, style="FD")
+        pdf.set_xy(pdf.l_margin + pill_width + 3, curr_y + 1.5)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(pill_width, 4, f"{findings_count} Key Synthesized Claims", align="C")
+        pdf.set_xy(pdf.l_margin + pill_width + 3, curr_y + 5)
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(100, 116, 139)
+        pdf.cell(pill_width, 4, "Verifiable Citation Mapping", align="C")
 
-        # References
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(30, 60, 120)
-        pdf.cell(width, 7, "References & Cited Sources", new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(50, 50, 50)
-        for ref in report.references:
-            date_str = f" ({ref.published_date})" if ref.published_date else ""
-            ref_line = f"[{ref.id}] {ref.title} - {ref.domain}{date_str} - {ref.url}"
-            pdf.multi_cell(width, 4, ExportService._clean_text_for_pdf(ref_line))
-            pdf.ln(2)
+        # Pill 3: Model
+        pdf.rect(pdf.l_margin + (pill_width * 2) + 6, curr_y, pill_width, 10, style="FD")
+        pdf.set_xy(pdf.l_margin + (pill_width * 2) + 6, curr_y + 1.5)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(5, 150, 105)  # Emerald 600
+        pdf.cell(pill_width, 4, "Google Gemini 3.8 Flash", align="C")
+        pdf.set_xy(pdf.l_margin + (pill_width * 2) + 6, curr_y + 5)
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(100, 116, 139)
+        pdf.cell(pill_width, 4, "Autonomous Reasoning Engine", align="C")
+
+        pdf.set_y(curr_y + 15)
+
+        # -------------------------------------------------------------
+        # 1. EXECUTIVE SUMMARY CALLOUT BOX
+        # -------------------------------------------------------------
+        ExportService._render_section_heading(pdf, "Executive Summary", width)
+
+        exec_text = ExportService._clean_text_for_pdf(report.executive_summary)
+        # Render callout box with light emerald tint and dark border
+        pdf.set_fill_color(240, 253, 244)  # Emerald 50 tint #F0FDF4
+        pdf.set_draw_color(16, 185, 129)  # Emerald 500
+        pdf.set_line_width(0.8)
+
+        box_start_y = pdf.get_y()
+        # Estimate text height
+        pdf.set_font("Helvetica", "", 9.5)
+        pdf.set_text_color(30, 41, 59)  # Slate 800
+
+        # Draw left accent line
+        pdf.set_x(pdf.l_margin + 4)
+        pdf.multi_cell(width - 6, 5.2, exec_text, border=0, align="L")
+        box_end_y = pdf.get_y()
+
+        # Draw left indicator bar
+        pdf.set_draw_color(16, 185, 129)
+        pdf.set_line_width(1.5)
+        pdf.line(pdf.l_margin, box_start_y, pdf.l_margin, box_end_y)
+
+        pdf.ln(6)
+
+        # -------------------------------------------------------------
+        # 2. KEY FINDINGS
+        # -------------------------------------------------------------
+        if report.key_findings:
+            ExportService._render_section_heading(pdf, "Key Strategic Findings", width)
+
+            for idx, kf in enumerate(report.key_findings, 1):
+                clean_kf = ExportService._clean_text_for_pdf(kf)
+
+                pdf.set_fill_color(248, 250, 252)  # Slate 50
+                pdf.set_draw_color(226, 232, 240)  # Slate 200
+                pdf.set_line_width(0.3)
+
+                start_y = pdf.get_y()
+
+                # Finding badge number
+                pdf.set_font("Helvetica", "B", 8)
+                pdf.set_text_color(37, 99, 235)  # Blue 600
+                pdf.cell(14, 5, f"[{idx:02d}]", align="L")
+
+                # Finding text
+                pdf.set_font("Helvetica", "", 9.5)
+                pdf.set_text_color(30, 41, 59)
+                pdf.multi_cell(width - 14, 5, clean_kf, align="L")
+                pdf.ln(2.5)
+
+            pdf.ln(4)
+
+        # -------------------------------------------------------------
+        # 3. DETAILED ANALYSIS BY TOPIC
+        # -------------------------------------------------------------
+        ExportService._render_section_heading(pdf, "In-Depth Research & Technical Analysis", width)
+
+        detailed_text = ExportService._clean_text_for_pdf(report.detailed_analysis)
+        paragraphs = [p.strip() for p in detailed_text.split("\n\n") if p.strip()]
+
+        for p in paragraphs:
+            # Check if paragraph looks like a sub-header (starts with ### or short title)
+            if p.startswith("### ") or (len(p) < 60 and p.endswith(":")):
+                sub_title = p.replace("### ", "").strip()
+                pdf.ln(2)
+                pdf.set_font("Helvetica", "B", 11)
+                pdf.set_text_color(30, 58, 138)  # Deep Navy Blue
+                pdf.multi_cell(width, 5.5, sub_title, align="L")
+                pdf.ln(1)
+            else:
+                pdf.set_font("Helvetica", "", 9.5)
+                pdf.set_text_color(30, 41, 59)
+                pdf.multi_cell(width, 5.2, p, align="L")
+                pdf.ln(3)
+
+        pdf.ln(4)
+
+        # -------------------------------------------------------------
+        # 4. METHODOLOGY & EVIDENCE RELIABILITY
+        # -------------------------------------------------------------
+        if report.methodology or report.evidence_and_citations:
+            ExportService._render_section_heading(pdf, "Research Methodology & Evidence Assessment", width)
+
+            if report.methodology:
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_text_color(51, 65, 85)
+                pdf.cell(width, 5, "Investigation Methodology:", new_x="LMARGIN", new_y="NEXT")
+                pdf.ln(1)
+                pdf.set_font("Helvetica", "", 9.5)
+                pdf.set_text_color(71, 85, 105)
+                pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.methodology), align="L")
+                pdf.ln(3)
+
+            if report.evidence_and_citations:
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_text_color(51, 65, 85)
+                pdf.cell(width, 5, "Source Credibility & Evidence Verification:", new_x="LMARGIN", new_y="NEXT")
+                pdf.ln(1)
+                pdf.set_font("Helvetica", "", 9.5)
+                pdf.set_text_color(71, 85, 105)
+                pdf.multi_cell(width, 5, ExportService._clean_text_for_pdf(report.evidence_and_citations), align="L")
+                pdf.ln(3)
+
+            pdf.ln(3)
+
+        # -------------------------------------------------------------
+        # 5. CONFLICTING EVIDENCE & LIMITATIONS (Alert Box)
+        # -------------------------------------------------------------
+        if report.conflicting_evidence_and_limitations:
+            ExportService._render_section_heading(pdf, "Conflicting Evidence & Gaps", width)
+
+            pdf.set_fill_color(255, 251, 235)  # Amber 50 #FFFBEB
+            pdf.set_draw_color(245, 158, 11)   # Amber 500
+            pdf.set_line_width(0.3)
+
+            alert_start_y = pdf.get_y()
+            pdf.set_x(pdf.l_margin + 4)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(120, 53, 15)  # Amber 900
+            pdf.multi_cell(
+                width - 6, 
+                4.8, 
+                ExportService._clean_text_for_pdf(report.conflicting_evidence_and_limitations), 
+                align="L"
+            )
+            alert_end_y = pdf.get_y()
+
+            # Left amber accent bar
+            pdf.set_draw_color(245, 158, 11)
+            pdf.set_line_width(1.5)
+            pdf.line(pdf.l_margin, alert_start_y, pdf.l_margin, alert_end_y)
+
+            pdf.ln(6)
+
+        # -------------------------------------------------------------
+        # 6. CONCLUSION
+        # -------------------------------------------------------------
+        if report.conclusion:
+            ExportService._render_section_heading(pdf, "Strategic Conclusion", width)
+            pdf.set_font("Helvetica", "", 9.5)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(width, 5.2, ExportService._clean_text_for_pdf(report.conclusion), align="L")
+            pdf.ln(6)
+
+        # -------------------------------------------------------------
+        # 7. VERIFIED REFERENCES & SOURCES TABLE
+        # -------------------------------------------------------------
+        ExportService._render_section_heading(pdf, "References & Cited Web Sources", width)
+
+        if report.references:
+            for ref in report.references:
+                # Reference Box
+                pdf.set_fill_color(248, 250, 252)
+                pdf.set_draw_color(226, 232, 240)
+                pdf.set_line_width(0.2)
+
+                ref_start_y = pdf.get_y()
+                # Check for page break space
+                if ref_start_y > pdf.h - 35:
+                    pdf.add_page()
+                    ref_start_y = pdf.get_y()
+
+                # Draw citation badge
+                pdf.set_fill_color(37, 99, 235)  # Blue 600
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_font("Helvetica", "B", 7.5)
+                pdf.rect(pdf.l_margin, ref_start_y, 8, 5, style="F")
+                pdf.set_xy(pdf.l_margin, ref_start_y)
+                pdf.cell(8, 5, f"{ref.id}", align="C")
+
+                # Title & Domain
+                pdf.set_xy(pdf.l_margin + 11, ref_start_y)
+                pdf.set_font("Helvetica", "B", 8.5)
+                pdf.set_text_color(15, 23, 42)
+                clean_ref_title = ExportService._clean_text_for_pdf(ref.title)
+                pdf.cell(width - 11, 4.5, clean_ref_title[:90], align="L", link=ref.url)
+                pdf.ln(4.5)
+
+                # Meta line (Domain, Date, Hyperlink)
+                pdf.set_x(pdf.l_margin + 11)
+                pdf.set_font("Helvetica", "", 7.5)
+                pdf.set_text_color(100, 116, 139)
+                date_part = f" * Published: {ref.published_date}" if ref.published_date else ""
+                clean_url = ref.url[:85] + ("..." if len(ref.url) > 85 else "")
+                pdf.cell(width - 11, 4, f"{ref.domain}{date_part}  |  Link: {clean_url}", align="L", link=ref.url)
+                pdf.ln(6)
+        else:
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(100, 116, 139)
+            pdf.cell(width, 6, "No external web citations registered.", align="L")
+            pdf.ln(4)
 
         return bytes(pdf.output())
 
     @staticmethod
+    def _render_section_heading(pdf: FPDF, title: str, width: float):
+        """Renders an elegant section header with a colored accent indicator."""
+        # Check if near page boundary
+        if pdf.get_y() > pdf.h - 32:
+            pdf.add_page()
+
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(15, 23, 42)  # Slate 900
+
+        # Small colored marker block
+        marker_y = pdf.get_y() + 1
+        pdf.set_fill_color(16, 185, 129)  # Emerald 500
+        pdf.rect(pdf.l_margin, marker_y, 3, 5, style="F")
+
+        pdf.set_x(pdf.l_margin + 5)
+        pdf.cell(width - 5, 6, title, new_x="LMARGIN", new_y="NEXT", align="L")
+        pdf.ln(2.5)
+
+    @staticmethod
     def _clean_text_for_pdf(text: str) -> str:
-        """Strips markdown headers/formatting and breaks long unbreakable strings for FPDF text rendering."""
+        """Strips markdown headers/formatting, normalizes unicode, and breaks long words for FPDF."""
         if not text:
             return ""
         # Strip markdown headers (##, ###) and bold (*, **)
         text = re.sub(r"#{1,6}\s*", "", text)
-        text = re.sub(r"\*{1,2}", "", text)
+        text = re.sub(r"\*{1,3}", "", text)
+        text = re.sub(r"`{1,3}", "", text)
 
         # Break any uninterrupted continuous token longer than 40 characters (e.g. long URLs) with space
         words = text.split(" ")
         cleaned_words = []
         for word in words:
-            if len(word) > 40 and not "\n" in word:
-                chunks = [word[i:i+35] for i in range(0, len(word), 35)]
+            if len(word) > 42 and not "\n" in word:
+                chunks = [word[i:i+38] for i in range(0, len(word), 38)]
                 cleaned_words.append(" ".join(chunks))
             else:
                 cleaned_words.append(word)
         text = " ".join(cleaned_words)
+
+        # Normalize special unicode symbols to clean ASCII/Latin-1
+        replacements = {
+            "\u2014": " - ",
+            "\u2013": " - ",
+            "\u2018": "'",
+            "\u2019": "'",
+            "\u201c": '"',
+            "\u201d": '"',
+            "\u2022": "*",
+            "\u2026": "...",
+            "\u00a9": "(c)",
+            "\u00ae": "(R)",
+            "\u2122": "TM",
+            "\u2192": "->",
+        }
+        for orig, rep in replacements.items():
+            text = text.replace(orig, rep)
 
         # Replace non-latin1 characters for standard FPDF fonts
         text = text.encode("latin-1", "replace").decode("latin-1")

@@ -115,9 +115,14 @@ class GeminiLLMProvider(BaseLLMProvider):
                 )
                 raw_text = response.text or "{}"
 
-            # Parse and validate JSON
+            # Parse and validate JSON (strict=False permits literal newlines/control chars in strings)
             cleaned_json = self._clean_json_string(raw_text)
-            data = json.loads(cleaned_json)
+            try:
+                data = json.loads(cleaned_json, strict=False)
+            except Exception:
+                # Fallback: remove problematic raw control characters
+                sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda m: "\\n" if m.group(0) == "\n" else " ", cleaned_json)
+                data = json.loads(sanitized, strict=False)
             return response_schema.model_validate(data)
             
         except ValidationError as ve:
