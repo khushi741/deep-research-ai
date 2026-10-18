@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, Compass, Filter, ArrowRight, Lightbulb, ShieldAlert } from 'lucide-react';
+import { Zap, Compass, Filter, ArrowRight, Lightbulb, ShieldAlert, Loader2 } from 'lucide-react';
 
 interface ResearchInputProps {
   onStartResearch: (question: string, mode: string, category?: string, dateScope?: string) => void;
@@ -213,8 +213,8 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                   borderRadius: '10px',
                   background: question.trim().length >= 5 && !isLoading
                     ? 'var(--gradient-brand)'
-                    : 'rgba(255, 255, 255, 0.1)',
-                  color: question.trim().length >= 5 && !isLoading ? '#FFFFFF' : 'var(--text-muted)',
+                    : 'rgba(59, 130, 246, 0.25)',
+                  color: '#FFFFFF',
                   border: 'none',
                   fontSize: '0.95rem',
                   fontWeight: 700,
@@ -229,7 +229,10 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                 }}
               >
                 {isLoading ? (
-                  <span>Running Research...</span>
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Initializing Research...</span>
+                  </>
                 ) : (
                   <>
                     <span>Start Research</span>
@@ -239,6 +242,27 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Buffering Status Banner */}
+          {isLoading && (
+            <div style={{
+              marginTop: '1.25rem',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              color: '#60A5FA',
+              fontSize: '0.88rem'
+            }}>
+              <Loader2 size={18} className="animate-spin" style={{ flexShrink: 0, color: '#38BDF8' }} />
+              <div>
+                <strong style={{ color: '#FFFFFF' }}>Autonomous Agent Launching:</strong> Decomposing your topic, planning multi-vector search queries, and connecting to live web sources...
+              </div>
+            </div>
+          )}
 
           {/* Advanced Filter Accordion */}
           {showAdvanced && (

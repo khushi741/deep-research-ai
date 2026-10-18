@@ -31,19 +31,37 @@ async def health_check():
 
 @router.post("/api/v1/research", response_model=ResearchSessionState, tags=["Research"])
 async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks):
-    """Initiates a new research run."""
+    """Initiates a new research run asynchronously in the background for instant UI progress feedback."""
     if len(request.question.strip()) < 5:
         raise HTTPException(status_code=400, detail="Research question must be at least 5 characters long.")
     if len(request.question) > settings.MAX_QUERY_LENGTH:
         raise HTTPException(status_code=400, detail=f"Research question exceeds maximum allowed length of {settings.MAX_QUERY_LENGTH} chars.")
 
-    # Execute research run
-    def save_cb(state: ResearchSessionState):
-        repository.save_session(state)
+    import uuid
+    session_id = str(uuid.uuid4())
+    initial_state = ResearchSessionState(
+        id=session_id,
+        question=request.question,
+        mode=request.mode,
+        status="planning",
+        current_stage="Stage A: Initializing Autonomous Research Planner"
+    )
+    repository.save_session(initial_state)
 
-    state = await orchestrator.run_research(request, progress_callback=save_cb)
-    repository.save_session(state)
-    return state
+    async def execute_pipeline(sid: str, req: ResearchRequest):
+        def save_cb(st: ResearchSessionState):
+            repository.save_session(st)
+        try:
+            final_st = await orchestrator.run_research(req, session_id=sid, progress_callback=save_cb)
+            repository.save_session(final_st)
+        except Exception as e:
+            err_state = repository.get_session(sid) or initial_state
+            err_state.status = "failed"
+            err_state.error_message = str(e)
+            repository.save_session(err_state)
+
+    background_tasks.add_task(execute_pipeline, session_id, request)
+    return initial_state
 
 
 @router.get("/api/v1/research/{session_id}", response_model=ResearchSessionState, tags=["Research"])

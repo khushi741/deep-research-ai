@@ -18,9 +18,9 @@ export function App() {
     checkHealth().then(setHealth);
   }, []);
 
-  // Poll active research session status every 2 seconds
+  // Poll active research session status every 1.5 seconds
   useEffect(() => {
-    if (!session || session.status === 'completed' || session.status === 'failed') {
+    if (!session || session.id === 'init' || session.status === 'completed' || session.status === 'failed') {
       return;
     }
 
@@ -38,7 +38,7 @@ export function App() {
       } catch (err) {
         console.error('Error polling session status:', err);
       }
-    }, 2000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [session]);
@@ -51,6 +51,23 @@ export function App() {
   ) => {
     setLoading(true);
     setError(null);
+
+    // Instant optimistic session transition so UI never freezes on form
+    const optimisticSession: ResearchSessionState = {
+      id: 'init',
+      question,
+      mode,
+      status: 'planning',
+      current_stage: 'Stage A: Decomposing Research Objectives & Generating Search Vectors',
+      sources_count: 0,
+      findings_count: 0,
+      sources: [],
+      findings: [],
+      created_at: new Date().toISOString(),
+      duration_seconds: 0.1,
+    };
+    setSession(optimisticSession);
+
     try {
       const initialState = await startResearch(question, mode, category, dateScope);
       setSession(initialState);
@@ -58,6 +75,7 @@ export function App() {
       console.error('Failed to start research:', err);
       setError(err.message || 'Failed to submit research request.');
       setLoading(false);
+      setSession(null);
     }
   };
 

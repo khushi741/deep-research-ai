@@ -304,47 +304,58 @@ class ExportService:
             pdf.ln(6)
 
         # -------------------------------------------------------------
-        # 7. VERIFIED REFERENCES & SOURCES TABLE
+        # 7. VERIFIED REFERENCES & SOURCES
         # -------------------------------------------------------------
-        ExportService._render_section_heading(pdf, "References & Cited Web Sources", width)
+        ExportService._render_section_heading(pdf, "References & Cited Web Sources", width, min_remaining_space=48)
 
         if report.references:
             for ref in report.references:
-                # Reference Box
-                pdf.set_fill_color(248, 250, 252)
-                pdf.set_draw_color(226, 232, 240)
-                pdf.set_line_width(0.2)
-
-                ref_start_y = pdf.get_y()
-                # Check for page break space
-                if ref_start_y > pdf.h - 35:
+                # Ensure at least 26mm remaining space so reference card never gets split across page edge
+                if pdf.get_y() > pdf.h - 26:
                     pdf.add_page()
-                    ref_start_y = pdf.get_y()
 
-                # Draw citation badge
+                card_start_y = pdf.get_y()
+                text_x = pdf.l_margin + 12
+                text_width = width - 12
+
+                # Number badge [1], [2]
                 pdf.set_fill_color(37, 99, 235)  # Blue 600
                 pdf.set_text_color(255, 255, 255)
-                pdf.set_font("Helvetica", "B", 7.5)
-                pdf.rect(pdf.l_margin, ref_start_y, 8, 5, style="F")
-                pdf.set_xy(pdf.l_margin, ref_start_y)
-                pdf.cell(8, 5, f"{ref.id}", align="C")
+                pdf.set_font("Helvetica", "B", 8)
+                pdf.rect(pdf.l_margin, card_start_y + 0.5, 9, 5.5, style="F")
+                pdf.set_xy(pdf.l_margin, card_start_y + 0.8)
+                pdf.cell(9, 5, f"{ref.id}", align="C")
 
-                # Title & Domain
-                pdf.set_xy(pdf.l_margin + 11, ref_start_y)
-                pdf.set_font("Helvetica", "B", 8.5)
+                # Multi-cell Title (wraps naturally, never cuts off mid-word or with ellipsis!)
+                pdf.set_xy(text_x, card_start_y)
+                pdf.set_font("Helvetica", "B", 9)
                 pdf.set_text_color(15, 23, 42)
                 clean_ref_title = ExportService._clean_text_for_pdf(ref.title)
-                pdf.cell(width - 11, 4.5, clean_ref_title[:90], align="L", link=ref.url)
-                pdf.ln(4.5)
+                pdf.multi_cell(text_width, 4.6, clean_ref_title, align="L", link=ref.url)
 
-                # Meta line (Domain, Date, Hyperlink)
-                pdf.set_x(pdf.l_margin + 11)
+                # Meta line: Domain and Clean Formatted Publication Date
+                clean_date = ""
+                if ref.published_date:
+                    raw_date = ref.published_date.split("T")[0] if "T" in ref.published_date else ref.published_date
+                    clean_date = f"   |   Published: {raw_date}"
+
+                pdf.set_x(text_x)
                 pdf.set_font("Helvetica", "", 7.5)
-                pdf.set_text_color(100, 116, 139)
-                date_part = f" * Published: {ref.published_date}" if ref.published_date else ""
-                clean_url = ref.url[:85] + ("..." if len(ref.url) > 85 else "")
-                pdf.cell(width - 11, 4, f"{ref.domain}{date_part}  |  Link: {clean_url}", align="L", link=ref.url)
-                pdf.ln(6)
+                pdf.set_text_color(100, 116, 139)  # Slate 500
+                pdf.multi_cell(text_width, 4.0, f"Source: {ref.domain}{clean_date}", align="L")
+
+                # Complete URL (wraps cleanly over multiple lines, fully clickable, never cut off with '...')
+                pdf.set_x(text_x)
+                pdf.set_font("Helvetica", "", 7.5)
+                pdf.set_text_color(37, 99, 235)  # Link Blue
+                pdf.multi_cell(text_width, 3.8, f"URL: {ref.url}", align="L", link=ref.url)
+
+                # Spacing and subtle divider rule between references
+                pdf.ln(3)
+                pdf.set_draw_color(241, 245, 249)  # Slate 100
+                pdf.set_line_width(0.2)
+                pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + width, pdf.get_y())
+                pdf.ln(3)
         else:
             pdf.set_font("Helvetica", "I", 9)
             pdf.set_text_color(100, 116, 139)
@@ -354,10 +365,10 @@ class ExportService:
         return bytes(pdf.output())
 
     @staticmethod
-    def _render_section_heading(pdf: FPDF, title: str, width: float):
+    def _render_section_heading(pdf: FPDF, title: str, width: float, min_remaining_space: float = 38):
         """Renders an elegant section header with a colored accent indicator."""
-        # Check if near page boundary
-        if pdf.get_y() > pdf.h - 32:
+        # Check if near page boundary to prevent orphan headings at bottom of page
+        if pdf.get_y() > pdf.h - min_remaining_space:
             pdf.add_page()
 
         pdf.ln(3)

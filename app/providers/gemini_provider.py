@@ -95,43 +95,59 @@ class GeminiLLMProvider(BaseLLMProvider):
 
         sys_inst = system_instruction or "You are a precise data extractor returning valid JSON adhering strictly to schemas."
 
-        try:
-            if self._sdk_type == "genai":
-                response = self._client.models.generate_content(
-                    model=self.model_name,
-                    contents=structured_prompt,
-                    config={
-                        "system_instruction": sys_inst,
-                        "response_mime_type": "application/json",
-                    }
-                )
-                raw_text = response.text or "{}"
-            else:
-                model = self._client.GenerativeModel(self.model_name)
-                full_prompt = f"{sys_inst}\n\n{structured_prompt}"
-                response = model.generate_content(
-                    full_prompt,
-                    generation_config={"response_mime_type": "application/json"}
-                )
-                raw_text = response.text or "{}"
+        # Model candidates list for automatic fallback on 429 quota limits or 404
+        candidate_models = [self.model_name]
+        for fallback_m in ["gemini-3-flash-preview", "gemini-3.8-flash"]:
+            if fallback_m not in candidate_models:
+                candidate_models.append(fallback_m)
 
-            # Parse and validate JSON (strict=False permits literal newlines/control chars in strings)
-            cleaned_json = self._clean_json_string(raw_text)
+        last_error = None
+        for current_model in candidate_models:
             try:
-                data = json.loads(cleaned_json, strict=False)
-            except Exception:
-                # Fallback: remove problematic raw control characters
-                sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda m: "\\n" if m.group(0) == "\n" else " ", cleaned_json)
-                data = json.loads(sanitized, strict=False)
-            return response_schema.model_validate(data)
-            
-        except ValidationError as ve:
-            logger.error(f"Pydantic schema validation error: {str(ve)}")
-            # Retry parsing attempt with extra cleanup if possible
-            raise ValueError(f"Failed to validate response against schema {response_schema.__name__}: {str(ve)}") from ve
-        except Exception as e:
-            logger.error(f"Error during structured generation: {str(e)}")
-            raise RuntimeError(f"Structured LLM generation failed: {str(e)}") from e
+                if self._sdk_type == "genai":
+                    response = self._client.models.generate_content(
+                        model=current_model,
+                        contents=structured_prompt,
+                        config={
+                            "system_instruction": sys_inst,
+                            "response_mime_type": "application/json",
+                        }
+                    )
+                    raw_text = response.text or "{}"
+                else:
+                    model = self._client.GenerativeModel(current_model)
+                    full_prompt = f"{sys_inst}\n\n{structured_prompt}"
+                    response = model.generate_content(
+                        full_prompt,
+                        generation_config={"response_mime_type": "application/json"}
+                    )
+                    raw_text = response.text or "{}"
+
+                # Parse and validate JSON (strict=False permits literal newlines/control chars in strings)
+                cleaned_json = self._clean_json_string(raw_text)
+                try:
+                    data = json.loads(cleaned_json, strict=False)
+                except Exception:
+                    # Fallback: remove problematic raw control characters
+                    sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", lambda m: "\\n" if m.group(0) == "\n" else " ", cleaned_json)
+                    data = json.loads(sanitized, strict=False)
+                return response_schema.model_validate(data)
+
+            except ValidationError as ve:
+                logger.error(f"Pydantic schema validation error on model {current_model}: {str(ve)}")
+                raise ValueError(f"Failed to validate response against schema {response_schema.__name__}: {str(ve)}") from ve
+            except Exception as e:
+                err_str = str(e)
+                last_error = e
+                # If error is quota or not found, try next candidate model
+                if ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "404" in err_str) and current_model != candidate_models[-1]:
+                    logger.warning(f"Model {current_model} reached quota or unavailable ({err_str[:80]}). Switching to next candidate...")
+                    continue
+                else:
+                    logger.error(f"Error during structured generation on {current_model}: {err_str}")
+                    break
+
+        raise RuntimeError(f"Structured LLM generation failed across candidates: {str(last_error)}") from last_error
 
     @staticmethod
     def _clean_json_string(raw_text: str) -> str:
