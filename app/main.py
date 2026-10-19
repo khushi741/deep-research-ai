@@ -35,8 +35,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from fastapi.staticfiles import StaticFiles
+
 # Include API endpoints
 app.include_router(router)
+
+# Mount React frontend static files if built
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "react-app", "dist"))
+if os.path.exists(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn

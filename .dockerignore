@@ -1,0 +1,11 @@
+node_modules
+frontend/react-app/node_modules
+frontend/react-app/dist
+venv
+.venv
+__pycache__
+*.pyc
+.git
+.pytest_cache
+research.db
+.env
