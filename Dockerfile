@@ -1,14 +1,5 @@
-# Stage 1: Build the React application
-FROM node:20-slim AS frontend-builder
-WORKDIR /app/frontend/react-app
-
-COPY frontend/react-app/package*.json ./
-RUN npm ci
-
-COPY frontend/react-app ./
-RUN npm run build
-
-# Stage 2: Python FastAPI backend server
+﻿# Single-stage lightweight Python container
+# React frontend is pre-built in frontend/react-app/dist, eliminating Node.js & npm memory overhead
 FROM python:3.11-slim
 WORKDIR /app
 
@@ -16,14 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements-docker.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code
+# Copy source code and pre-built React frontend assets
 COPY . .
-
-# Copy built React frontend assets from stage 1
-COPY --from=frontend-builder /app/frontend/react-app/dist /app/frontend/react-app/dist
 
 # Render provides the port in the $PORT environment variable
 ENV PORT=8000

@@ -192,7 +192,7 @@ class ResearchOrchestrator:
         logger.info(f"Fetching content for {len(target_urls)} unique URLs (capped at MAX_PAGES_PROCESSED={settings.MAX_PAGES_PROCESSED})")
 
         # Asynchronously fetch content in parallel
-        extracted_content = await self.web_fetcher.fetch_batch(target_urls, max_concurrency=4)
+        extracted_content = await self.web_fetcher.fetch_batch(target_urls, max_concurrency=2)
         
         # Filter out completely failed or empty pages
         valid_extracted = [c for c in extracted_content if c.content and not c.error]

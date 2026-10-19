@@ -1,4 +1,4 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -50,4 +50,5 @@ htmlcov/
 # Node / Frontend
 node_modules/
 dist/
-
+!frontend/react-app/dist/
+!frontend/react-app/dist/**

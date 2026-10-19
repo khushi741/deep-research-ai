@@ -126,7 +126,7 @@ class AsyncWebFetcher:
                     )
 
                 # Extract Text and Metadata
-                html_text = response.text
+                html_text = response.text[:1000000]
                 title, main_text, pub_date = HTMLContentExtractor.extract_text_and_metadata(html_text, curr_url)
 
                 return ExtractedContent(

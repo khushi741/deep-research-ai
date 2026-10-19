@@ -1,6 +1,5 @@
-node_modules
+﻿node_modules
 frontend/react-app/node_modules
-frontend/react-app/dist
 venv
 .venv
 __pycache__
