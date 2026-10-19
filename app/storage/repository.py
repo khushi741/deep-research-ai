@@ -1,7 +1,7 @@
 import json
 from typing import Optional, List
 from app.models.research import ResearchSessionState
-from app.storage.database import get_db_connection
+from app.storage.database import get_db_connection, init_db
 from app.utils.logging import get_logger
 
 logger = get_logger("repository")
@@ -9,6 +9,9 @@ logger = get_logger("repository")
 
 class ResearchRepository:
     """Repository for persisting and retrieving research session history in SQLite."""
+
+    def __init__(self):
+        init_db()
 
     def save_session(self, state: ResearchSessionState):
         """Saves or updates a research session state."""

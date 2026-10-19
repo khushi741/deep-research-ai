@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import time
+from typing import Optional
 import streamlit as st
 
 # Add root project path to sys.path for direct imports
@@ -89,7 +90,6 @@ def main():
             os.environ["GEMINI_API_KEY"] = user_key
 
     active_key = user_key or env_key
-    global provider
     provider = GeminiLLMProvider(api_key=active_key)
 
     # System Status & Setup Instructions
@@ -114,14 +114,17 @@ def main():
     nav_option = st.sidebar.radio("Navigation", ["New Research", "Research History", "API Setup & Docs"])
 
     if nav_option == "New Research":
-        render_new_research_page()
+        render_new_research_page(provider)
     elif nav_option == "Research History":
         render_history_page()
     else:
         render_docs_page()
 
 
-def render_new_research_page():
+def render_new_research_page(provider: Optional[GeminiLLMProvider] = None):
+    if provider is None:
+        provider = GeminiLLMProvider()
+
     st.markdown('<div class="main-header">Deep Research AI</div>', unsafe_allow_html=True)
     st.markdown('<div class="tagline">Research smarter. Verify sources. Discover insights.</div>', unsafe_allow_html=True)
 
@@ -146,6 +149,10 @@ def render_new_research_page():
     if submit_btn:
         if not question or len(question.strip()) < 5:
             st.error("Please enter a research question of at least 5 characters.")
+            return
+
+        if not provider.is_available():
+            st.error("Gemini API Key is not configured or invalid. Please configure GEMINI_API_KEY in the sidebar or environment.")
             return
 
         orchestrator = ResearchOrchestrator(llm_provider=provider)
