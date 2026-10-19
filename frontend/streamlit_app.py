@@ -56,9 +56,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Repositories & Orchestrator Initialization
+# Sync Streamlit Cloud secrets to environment if present
+try:
+    if hasattr(st, "secrets"):
+        for sec_key, sec_val in st.secrets.items():
+            if isinstance(sec_val, str) and sec_key not in os.environ:
+                os.environ[sec_key] = sec_val
+except Exception:
+    pass
+
 repository = ResearchRepository()
-provider = GeminiLLMProvider()
 
 
 def main():
@@ -67,23 +74,41 @@ def main():
     st.sidebar.markdown("**Tagline:** Research smarter. Verify sources. Discover insights.")
     st.sidebar.divider()
 
+    # Determine Gemini API Key from environment, secrets, or sidebar input
+    env_key = os.getenv("GEMINI_API_KEY") or (st.secrets.get("GEMINI_API_KEY") if hasattr(st, "secrets") else None)
+    user_key = None
+
+    if not env_key:
+        user_key = st.sidebar.text_input(
+            "Gemini API Key:",
+            type="password",
+            placeholder="AIzaSy...",
+            help="Get a free key from https://aistudio.google.com/"
+        )
+        if user_key:
+            os.environ["GEMINI_API_KEY"] = user_key
+
+    active_key = user_key or env_key
+    global provider
+    provider = GeminiLLMProvider(api_key=active_key)
+
     # System Status & Setup Instructions
     api_status = provider.is_available()
     if api_status:
-        st.sidebar.success("✅ Gemini API Configured")
+        st.sidebar.success("✅ Gemini LLM Configured")
     else:
-        st.sidebar.warning("⚠️ GEMINI_API_KEY Not Configured")
+        st.sidebar.warning("⚠️ GEMINI_API_KEY Required")
         st.sidebar.info(
             "**API Key Required:**\n"
-            "Set `GEMINI_API_KEY` in your `.env` file or environment to enable AI deep research.\n\n"
+            "Set `GEMINI_API_KEY` in Streamlit Cloud Secrets or enter your key above.\n\n"
             "Get a free key at: [Google AI Studio](https://aistudio.google.com/)"
         )
 
-    tavily_status = bool(settings.TAVILY_API_KEY or os.getenv("TAVILY_API_KEY"))
+    tavily_status = bool(os.getenv("TAVILY_API_KEY") or (st.secrets.get("TAVILY_API_KEY") if hasattr(st, "secrets") else None))
     if tavily_status:
         st.sidebar.success("✅ Tavily Search Configured")
     else:
-        st.sidebar.caption("ℹ️ Tavily Key absent — Using DuckDuckGo Search fallback")
+        st.sidebar.caption("ℹ️ Search Engine: DuckDuckGo (Free & Built-in)")
 
     st.sidebar.divider()
     nav_option = st.sidebar.radio("Navigation", ["New Research", "Research History", "API Setup & Docs"])
