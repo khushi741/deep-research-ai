@@ -3,8 +3,9 @@ import { Navbar } from './components/Navbar';
 import { ResearchInput } from './components/ResearchInput';
 import { ResearchProgress } from './components/ResearchProgress';
 import { ReportViewer } from './components/ReportViewer';
+import { HistoryModal } from './components/HistoryModal';
 import type { HealthResponse, ResearchSessionState } from './types/research';
-import { checkHealth, startResearch, getResearchStatus } from './services/api';
+import { checkHealth, startResearch, getResearchStatus, cancelResearch } from './services/api';
 import { AlertCircle } from 'lucide-react';
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
   const [session, setSession] = useState<ResearchSessionState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Poll backend health status on mount
   useEffect(() => {
@@ -20,7 +22,7 @@ export function App() {
 
   // Poll active research session status every 1.5 seconds
   useEffect(() => {
-    if (!session || session.id === 'init' || session.status === 'completed' || session.status === 'failed') {
+    if (!session || session.id === 'init' || session.status === 'completed' || session.status === 'failed' || session.status === 'cancelled') {
       return;
     }
 
@@ -29,7 +31,7 @@ export function App() {
         const updated = await getResearchStatus(session.id);
         setSession(updated);
 
-        if (updated.status === 'completed' || updated.status === 'failed') {
+        if (updated.status === 'completed' || updated.status === 'failed' || updated.status === 'cancelled') {
           setLoading(false);
           if (updated.status === 'failed') {
             setError(updated.error_message || 'Research run failed.');
@@ -47,20 +49,25 @@ export function App() {
     question: string,
     mode: string,
     category?: string,
-    dateScope?: string
+    dateScope?: string,
+    minRelevance?: number
   ) => {
     setLoading(true);
     setError(null);
 
-    // Instant optimistic session transition so UI never freezes on form
+    // Instant optimistic session transition
     const optimisticSession: ResearchSessionState = {
       id: 'init',
       question,
       mode,
       status: 'planning',
-      current_stage: 'Stage A: Decomposing Research Objectives & Generating Search Vectors',
+      current_stage: 'Stage 1/6: Formulating Research Plan & Search Vectors',
+      progress_percent: 5,
       sources_count: 0,
       findings_count: 0,
+      completed_queries_count: 0,
+      total_queries_count: mode === 'deep' ? 12 : 4,
+      rejected_sources_count: 0,
       sources: [],
       findings: [],
       created_at: new Date().toISOString(),
@@ -69,7 +76,7 @@ export function App() {
     setSession(optimisticSession);
 
     try {
-      const initialState = await startResearch(question, mode, category, dateScope);
+      const initialState = await startResearch(question, mode, category, dateScope, minRelevance);
       setSession(initialState);
     } catch (err: any) {
       console.error('Failed to start research:', err);
@@ -79,24 +86,46 @@ export function App() {
     }
   };
 
+  const handleCancelResearch = async () => {
+    if (!session || session.id === 'init') return;
+    try {
+      await cancelResearch(session.id);
+      const updated = await getResearchStatus(session.id);
+      setSession(updated);
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Failed to cancel research:', err);
+    }
+  };
+
   const handleReset = () => {
     setSession(null);
     setLoading(false);
     setError(null);
   };
 
+  const handleSelectHistorySession = (selected: ResearchSessionState) => {
+    setSession(selected);
+    setError(null);
+    setLoading(false);
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Navigation */}
-      <Navbar health={health} onReset={handleReset} />
+      <Navbar 
+        health={health} 
+        onReset={handleReset} 
+        onOpenHistory={() => setIsHistoryOpen(true)} 
+      />
 
       {/* Main Page Area */}
       <main style={{ flex: 1, paddingBottom: '4rem' }}>
         {/* Error Banner */}
         {error && (
-          <div style={{ maxWidth: '900px', margin: '1.5rem auto 0', padding: '0 1.5rem' }}>
+          <div className="page-container" style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
             <div style={{
-              padding: '1rem 1.25rem',
+              padding: '0.85rem 1.15rem',
               borderRadius: '12px',
               background: 'rgba(239, 68, 68, 0.12)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -104,10 +133,10 @@ export function App() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
-              fontSize: '0.9rem'
+              fontSize: '0.85rem'
             }}>
-              <AlertCircle size={20} style={{ flexShrink: 0 }} />
-              <div>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <div style={{ wordBreak: 'break-word' }}>
                 <strong>Research Error:</strong> {error}
               </div>
             </div>
@@ -123,26 +152,40 @@ export function App() {
           />
         )}
 
-        {/* State 2: Active Pipeline Progress */}
-        {session && session.status !== 'completed' && session.status !== 'failed' && (
-          <ResearchProgress session={session} />
+        {/* State 2: Active Pipeline Progress or Cancelled */}
+        {session && session.status !== 'completed' && !session.report && (
+          <ResearchProgress 
+            session={session} 
+            onCancel={handleCancelResearch} 
+          />
         )}
 
         {/* State 3: Completed Report */}
         {session && (session.status === 'completed' || session.report) && (
-          <ReportViewer session={session} onNewResearch={handleReset} />
+          <ReportViewer 
+            session={session} 
+            onNewResearch={handleReset} 
+          />
         )}
       </main>
+
+      {/* History Modal */}
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelectSession={handleSelectHistorySession}
+      />
 
       {/* Footer */}
       <footer style={{
         borderTop: '1px solid var(--border-color)',
-        padding: '1.5rem',
+        padding: '1.25rem 1rem',
         textAlign: 'center',
-        fontSize: '0.8rem',
+        fontSize: '0.75rem',
+        lineHeight: 1.5,
         color: 'var(--text-muted)'
       }}>
-        Deep Research AI Agent • Powered by FastAPI, Google Gemini, Tavily API & React Vite
+        Deep Research AI Agent • Real Autonomous Multi-Vector Engine • Powered by FastAPI, Google Gemini, Tavily & React
       </footer>
     </div>
   );

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Zap, Compass, Filter, ArrowRight, Lightbulb, ShieldAlert, Loader2 } from 'lucide-react';
+import { Zap, Compass, Filter, ArrowRight, ShieldAlert, Loader2 } from 'lucide-react';
 
 interface ResearchInputProps {
-  onStartResearch: (question: string, mode: string, category?: string, dateScope?: string) => void;
+  onStartResearch: (question: string, mode: string, category?: string, dateScope?: string, minRelevance?: number) => void;
   isLoading: boolean;
   apiKeyMissing?: boolean;
 }
@@ -23,150 +23,123 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
   const [mode, setMode] = useState<'quick' | 'deep'>('quick');
   const [category, setCategory] = useState('');
   const [dateScope, setDateScope] = useState('');
+  const [minRelevance, setMinRelevance] = useState(45);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (question.trim().length >= 5 && !isLoading) {
-      onStartResearch(question.trim(), mode, category, dateScope);
+      onStartResearch(question.trim(), mode, category, dateScope, minRelevance / 100);
     }
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '3rem auto 0', padding: '0 1.5rem' }}>
+    <div className="page-container">
       {/* Hero Header */}
-      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.4rem 1rem',
+          gap: '0.45rem',
+          padding: '0.35rem 0.9rem',
           borderRadius: '30px',
           background: 'rgba(59, 130, 246, 0.1)',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          fontSize: '0.85rem',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          fontSize: '0.8rem',
           fontWeight: 600,
           color: '#60A5FA',
-          marginBottom: '1.2rem'
+          marginBottom: '1rem'
         }}>
           <Zap size={14} />
           <span>Autonomous AI Research & Verification Agent</span>
         </div>
-        <h2 style={{
-          fontSize: '2.75rem',
-          fontWeight: 800,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.2,
-          marginBottom: '1rem'
-        }}>
+        <h2 className="hero-title-responsive">
           Research Smarter. <span className="text-gradient">Verify Sources.</span> Discover Insights.
         </h2>
-        <p style={{
-          fontSize: '1.1rem',
-          color: 'var(--text-secondary)',
-          maxWidth: '680px',
-          margin: '0 auto'
-        }}>
+        <p className="hero-subtitle-responsive">
           Deep Research AI autonomously executes multi-step web queries, checks publisher credibility, extracts evidence, and synthesizes cited reports.
         </p>
       </div>
 
       {apiKeyMissing && (
         <div style={{
-          padding: '1rem 1.25rem',
+          padding: '0.85rem 1.15rem',
           borderRadius: '12px',
           background: 'rgba(245, 158, 11, 0.1)',
           border: '1px solid rgba(245, 158, 11, 0.25)',
           color: '#FBBF24',
-          fontSize: '0.88rem',
-          marginBottom: '1.5rem',
+          fontSize: '0.85rem',
+          marginBottom: '1.25rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem'
         }}>
-          <ShieldAlert size={20} style={{ flexShrink: 0 }} />
+          <ShieldAlert size={18} style={{ flexShrink: 0 }} />
           <div>
-            <strong>Notice:</strong> <code>GEMINI_API_KEY</code> is not configured in <code>.env</code>. You can set it in your environment or <code>.env</code> file to run real Gemini synthesis.
+            <strong>Notice:</strong> <code>GEMINI_API_KEY</code> is not configured. The agent will run with the local heuristic evaluation and fallback synthesis pipeline.
           </div>
         </div>
       )}
 
       {/* Main Form Box */}
-      <div className="glass-card" style={{ padding: '2rem', position: 'relative' }}>
+      <div className="glass-card card-padding-lg" style={{ position: 'relative' }}>
         <form onSubmit={handleSubmit}>
           {/* Query Text Area */}
-          <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+          <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What topic would you like to investigate deeply? (e.g. Current state of nuclear fusion energy in 2026)"
+              placeholder="What topic would you like to investigate deeply? (e.g. Current breakthroughs and challenges in solid-state battery commercialization)"
               rows={3}
               style={{
                 width: '100%',
                 background: 'rgba(15, 23, 42, 0.8)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '12px',
-                padding: '1rem 1.25rem',
+                padding: '0.9rem 1.1rem',
                 color: '#FFFFFF',
-                fontSize: '1.05rem',
+                fontSize: '1rem',
                 fontFamily: 'inherit',
-                resize: 'vertical',
+                resize: 'none',
                 outline: 'none',
-                transition: 'border-color 0.2s',
+                lineHeight: 1.5
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
             />
           </div>
 
-          {/* Controls Bar */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            paddingTop: '0.5rem'
-          }}>
-            {/* Research Mode Selector */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(15, 23, 42, 0.6)',
-              padding: '0.25rem',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)'
-            }}>
+          {/* Action Row */}
+          <div className="form-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            {/* Mode Selector */}
+            <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
               <button
                 type="button"
                 onClick={() => setMode('quick')}
                 style={{
-                  padding: '0.45rem 0.9rem',
+                  padding: '0.45rem 0.85rem',
                   borderRadius: '8px',
                   border: 'none',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  background: mode === 'quick' ? 'var(--accent-primary)' : 'transparent',
+                  background: mode === 'quick' ? 'var(--gradient-brand)' : 'transparent',
                   color: mode === 'quick' ? '#FFFFFF' : 'var(--text-muted)',
                   transition: 'all 0.2s'
                 }}
               >
                 <Zap size={14} />
-                Quick (3-5 Pages)
+                Quick (2 SubQ, 6 Pages)
               </button>
-
               <button
                 type="button"
                 onClick={() => setMode('deep')}
                 style={{
-                  padding: '0.45rem 0.9rem',
+                  padding: '0.45rem 0.85rem',
                   borderRadius: '8px',
                   border: 'none',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -178,12 +151,12 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                 }}
               >
                 <Compass size={14} />
-                Deep Analysis (10+ Pages)
+                Deep (5 SubQ, 18 Pages, Gap Filling)
               </button>
             </div>
 
             {/* Filter Toggle & Submit Button */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="action-buttons-group" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
@@ -193,7 +166,7 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                   background: showAdvanced ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
                   border: '1px solid var(--border-color)',
                   color: showAdvanced ? '#60A5FA' : 'var(--text-secondary)',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -209,14 +182,14 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                 type="submit"
                 disabled={question.trim().length < 5 || isLoading}
                 style={{
-                  padding: '0.65rem 1.6rem',
+                  padding: '0.65rem 1.4rem',
                   borderRadius: '10px',
                   background: question.trim().length >= 5 && !isLoading
                     ? 'var(--gradient-brand)'
                     : 'rgba(59, 130, 246, 0.25)',
                   color: '#FFFFFF',
                   border: 'none',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem',
                   fontWeight: 700,
                   cursor: question.trim().length >= 5 && !isLoading ? 'pointer' : 'not-allowed',
                   display: 'flex',
@@ -231,7 +204,7 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
                 {isLoading ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    <span>Initializing Research...</span>
+                    <span>Launching...</span>
                   </>
                 ) : (
                   <>
@@ -243,27 +216,6 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
             </div>
           </div>
 
-          {/* Buffering Status Banner */}
-          {isLoading && (
-            <div style={{
-              marginTop: '1.25rem',
-              padding: '0.85rem 1.25rem',
-              borderRadius: '10px',
-              background: 'rgba(59, 130, 246, 0.12)',
-              border: '1px solid rgba(59, 130, 246, 0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.85rem',
-              color: '#60A5FA',
-              fontSize: '0.88rem'
-            }}>
-              <Loader2 size={18} className="animate-spin" style={{ flexShrink: 0, color: '#38BDF8' }} />
-              <div>
-                <strong style={{ color: '#FFFFFF' }}>Autonomous Agent Launching:</strong> Decomposing your topic, planning multi-vector search queries, and connecting to live web sources...
-              </div>
-            </div>
-          )}
-
           {/* Advanced Filter Accordion */}
           {showAdvanced && (
             <div style={{
@@ -271,99 +223,100 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({
               paddingTop: '1.25rem',
               borderTop: '1px solid var(--border-color)',
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '1rem'
             }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                  Domain Category (Optional)
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Category Focus
                 </label>
-                <select
+                <input
+                  type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g. Science, Energy, Technology, Finance"
                   style={{
                     width: '100%',
-                    background: '#0F172A',
-                    border: '1px solid var(--border-color)',
+                    padding: '0.5rem 0.75rem',
                     borderRadius: '8px',
-                    padding: '0.5rem',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid var(--border-color)',
                     color: '#FFFFFF',
-                    fontSize: '0.85rem'
+                    fontSize: '0.82rem'
                   }}
-                >
-                  <option value="">All Domains & Industries</option>
-                  <option value="Technology & AI">Technology & AI</option>
-                  <option value="Science & Energy">Science & Energy</option>
-                  <option value="Economics & Finance">Economics & Finance</option>
-                  <option value="Healthcare & Medicine">Healthcare & Medicine</option>
-                </select>
+                />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                  Time Boundary (Optional)
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  Temporal Scope
                 </label>
                 <input
                   type="text"
                   value={dateScope}
                   onChange={(e) => setDateScope(e.target.value)}
-                  placeholder="e.g. 2024-2026, Recent 6 months"
+                  placeholder="e.g. 2025-2026, Recent, Historical"
                   style={{
                     width: '100%',
-                    background: '#0F172A',
-                    border: '1px solid var(--border-color)',
+                    padding: '0.5rem 0.75rem',
                     borderRadius: '8px',
-                    padding: '0.5rem',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid var(--border-color)',
                     color: '#FFFFFF',
-                    fontSize: '0.85rem'
+                    fontSize: '0.82rem'
                   }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                  <span>Min Relevance Threshold</span>
+                  <span style={{ color: '#60A5FA' }}>{minRelevance}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="25"
+                  max="80"
+                  step="5"
+                  value={minRelevance}
+                  onChange={(e) => setMinRelevance(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#3B82F6' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Filters out homonyms & unrelated web hits.
+                </span>
               </div>
             </div>
           )}
         </form>
       </div>
 
-      {/* Example Topics */}
+      {/* Example Suggestions */}
       <div style={{ marginTop: '2rem' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.85rem',
-          color: 'var(--text-muted)',
-          marginBottom: '0.8rem'
-        }}>
-          <Lightbulb size={14} color="#FBBF24" />
-          <span>Suggested Research Questions:</span>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Suggested Research Questions
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-          {EXAMPLE_QUERIES.map((q, idx) => (
-            <button
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem' }}>
+          {EXAMPLE_QUERIES.map((eq, idx) => (
+            <div
               key={idx}
-              onClick={() => setQuestion(q)}
+              onClick={() => setQuestion(eq)}
               style={{
-                background: 'rgba(255, 255, 255, 0.04)',
+                padding: '0.85rem 1rem',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.02)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '20px',
-                padding: '0.4rem 0.85rem',
+                fontSize: '0.82rem',
                 color: 'var(--text-secondary)',
-                fontSize: '0.8rem',
                 cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                lineHeight: 1.4
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.color = 'var(--text-secondary)';
-              }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-color)')}
             >
-              {q}
-            </button>
+              "{eq}"
+            </div>
           ))}
         </div>
       </div>

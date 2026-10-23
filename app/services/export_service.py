@@ -16,9 +16,10 @@ class ModernResearchPDF(FPDF):
     styled section dividers, and clickable reference link cards.
     """
 
-    def __init__(self, title: str):
+    def __init__(self, title: str, verification_badge: str = "Partial Evidence"):
         super().__init__(orientation="P", unit="mm", format="A4")
         self.report_title = title
+        self.badge = verification_badge.upper()
         self.generated_date = datetime.now().strftime("%B %d, %Y")
         self.set_margins(left=18, top=18, right=18)
 
@@ -32,7 +33,7 @@ class ModernResearchPDF(FPDF):
                 clean_title = clean_title[:62] + "..."
             self.cell(0, 6, f"DEEP RESEARCH AI  |  {clean_title.upper()}", border=0, align="L")
             self.set_font("Helvetica", "", 8)
-            self.cell(0, 6, self.generated_date, border=0, align="R")
+            self.cell(0, 6, f"{self.generated_date} | {self.badge}", border=0, align="R")
             self.ln(7)
 
             # Subtle accent divider rule under header
@@ -50,7 +51,7 @@ class ModernResearchPDF(FPDF):
 
         self.set_font("Helvetica", "", 8)
         self.set_text_color(148, 163, 184)  # Slate 400
-        self.cell(0, 8, "VERIFIED AUTONOMOUS RESEARCH REPORT  -  DEEP RESEARCH AI", border=0, align="L")
+        self.cell(0, 8, f"AUTONOMOUS RESEARCH REPORT [{self.badge}]  -  DEEP RESEARCH AI", border=0, align="L")
         self.set_font("Helvetica", "B", 8)
         self.set_text_color(100, 116, 139)
         self.cell(0, 8, f"Page {self.page_no()}/{{nb}}", border=0, align="R")
@@ -67,7 +68,8 @@ class ExportService:
     @staticmethod
     def generate_pdf_bytes(report: ResearchReport) -> bytes:
         """Generates a styled, publication-ready whitepaper PDF document from the report."""
-        pdf = ModernResearchPDF(title=report.title)
+        badge = getattr(report, "verification_badge", "Partial Evidence") or "Partial Evidence"
+        pdf = ModernResearchPDF(title=report.title, verification_badge=badge)
         pdf.alias_nb_pages()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=18)
@@ -85,10 +87,18 @@ class ExportService:
         pdf.set_text_color(52, 211, 153)  # Mint Green Accent
         pdf.cell(80, 6, "DEEP RESEARCH AI  *  AUTONOMOUS AGENT INTELLIGENCE", align="L")
 
-        pdf.set_xy(pdf.w - pdf.r_margin - 75, pdf.get_y())
+        pdf.set_xy(pdf.w - pdf.r_margin - 85, pdf.get_y())
         pdf.set_font("Helvetica", "B", 8)
-        pdf.set_text_color(248, 250, 252)
-        pdf.cell(70, 6, f"DATE: {pdf.generated_date}  |  STATUS: VERIFIED", align="R")
+        
+        # Color-coded badge
+        if badge.upper() == "VERIFIED":
+            pdf.set_text_color(52, 211, 153)  # Mint green
+        elif "PARTIAL" in badge.upper():
+            pdf.set_text_color(251, 191, 36)  # Amber
+        else:
+            pdf.set_text_color(248, 113, 113)  # Coral red
+
+        pdf.cell(80, 6, f"DATE: {pdf.generated_date}  |  STATUS: {badge.upper()}", align="R")
 
         pdf.set_y(pdf.get_y() + 14)
 

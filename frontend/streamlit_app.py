@@ -246,6 +246,54 @@ st.markdown("""
         color: #60A5FA !important;
         border-bottom: 2px solid #3B82F6 !important;
     }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 1.85rem !important;
+            line-height: 1.25 !important;
+        }
+        .hero-subtitle {
+            font-size: 0.95rem !important;
+            padding: 0 0.5rem;
+        }
+        .hero-badge {
+            font-size: 0.78rem !important;
+            padding: 0.35rem 0.85rem !important;
+        }
+        .glass-card {
+            padding: 1.15rem !important;
+            border-radius: 12px !important;
+        }
+        .metric-card-container {
+            padding: 0.75rem 0.5rem !important;
+            margin-bottom: 0.5rem;
+        }
+        .metric-number {
+            font-size: 1.4rem !important;
+        }
+        .metric-label {
+            font-size: 0.7rem !important;
+        }
+        div.stButton > button, div[data-testid="stFormSubmitButton"] > button {
+            padding: 0.65rem 1rem !important;
+            font-size: 0.95rem !important;
+            width: 100% !important;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            padding: 6px 12px !important;
+            font-size: 0.85rem !important;
+        }
+        .source-box, .finding-card {
+            padding: 0.85rem 1rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 

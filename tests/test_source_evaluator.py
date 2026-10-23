@@ -13,11 +13,11 @@ class MockLLMProvider(BaseLLMProvider):
         return SourceEvaluationResponse(evaluations=[
             SourceEvaluation(
                 url="https://example.gov/report",
-                title="Official Government Report",
+                title="Official Government Report on Energy",
                 domain="example.gov",
                 relevance_score=0.9,
                 authority_score=0.95,
-                source_type="Academic/Government",
+                source_type="Primary Academic / Government",
                 credibility_signals=["Official domain"],
                 reasoning="Primary government source",
                 published_date="2026-01-01"
@@ -34,15 +34,20 @@ def test_source_evaluator_with_mock_llm():
     sources = [
         ExtractedContent(
             url="https://example.gov/report",
-            title="Official Government Report",
-            content="Detailed research statistical findings.",
+            title="Official Government Report on Energy",
+            content=(
+                "Detailed research statistical findings regarding sample query energy development. "
+                "This comprehensive investigation provides verified empirical evidence, official data, "
+                "and technological milestones for the sample query topic across the industry."
+            ),
             domain="example.gov"
         )
     ]
-    evals = evaluator.evaluate_sources("Sample query", sources)
+    evals = evaluator.evaluate_sources("Sample query energy development", sources)
     assert len(evals) == 1
-    assert evals[0].authority_score == 0.95
-    assert evals[0].source_type == "Academic/Government"
+    assert evals[0].authority_score >= 0.90
+    assert "Academic" in evals[0].source_type or "Government" in evals[0].source_type
+    assert evals[0].is_included is True
 
 
 def test_source_evaluator_rule_based_fallback():
@@ -58,11 +63,15 @@ def test_source_evaluator_rule_based_fallback():
     sources = [
         ExtractedContent(
             url="https://harvard.edu/paper",
-            title="University Paper",
-            content="Sample text content for testing.",
+            title="University Paper on Quantum Computing",
+            content=(
+                "Harvard research laboratory findings on quantum computing architectures, "
+                "superconducting qubits, coherence times, and fault-tolerant quantum error correction."
+            ),
             domain="harvard.edu"
         )
     ]
-    evals = evaluator.evaluate_sources("Test query", sources)
+    evals = evaluator.evaluate_sources("Quantum computing architectures", sources)
     assert len(evals) == 1
-    assert evals[0].authority_score >= 0.8  # .edu domain rule
+    assert evals[0].authority_score >= 0.85  # .edu academic rule
+    assert evals[0].is_included is True

@@ -34,6 +34,7 @@ class GeminiLLMProvider(BaseLLMProvider):
             except ImportError:
                 try:
                     # Fallback to google.generativeai
+                    # pyrefly: ignore [missing-import]
                     import google.generativeai as genai_legacy
                     genai_legacy.configure(api_key=self.api_key)
                     self._client = genai_legacy

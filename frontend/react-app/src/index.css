@@ -252,3 +252,412 @@ body {
 .soundwave-bar:nth-child(3) { animation-delay: 0.4s; }
 .soundwave-bar:nth-child(4) { animation-delay: 0.15s; }
 
+/* ==========================================================================
+   Mobile-First Responsive Design System & Layout Classes
+   ========================================================================== */
+
+/* Universal Responsive Container */
+.page-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 2.5rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.report-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+/* Glass Card Responsive Padding */
+.card-padding-lg {
+  padding: 2.25rem;
+}
+
+.card-padding-md {
+  padding: 1.75rem;
+}
+
+.card-padding-sm {
+  padding: 1.25rem;
+}
+
+/* Navbar Responsive Classes */
+.navbar-header-root {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.85rem 2rem;
+  transition: padding 0.2s ease;
+}
+
+.navbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.navbar-badges-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+/* Hero Section Typography */
+.hero-title-responsive {
+  font-size: clamp(1.85rem, 5.5vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 0.85rem;
+  word-wrap: break-word;
+}
+
+.hero-subtitle-responsive {
+  font-size: clamp(0.92rem, 2.5vw, 1.1rem);
+  color: var(--text-secondary);
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Form Controls & Action Bars */
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.mode-selector-wrap {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 0.3rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Research Progress Layouts */
+.progress-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.terminal-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.stages-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metrics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+/* Report Viewer Layouts */
+.report-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.report-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.report-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+/* Horizontally Scrollable Modern Tabs Bar */
+.tabs-scroll-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tabs-scroll-bar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.tab-nav-btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+/* Sources & Findings Responsive Grids */
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 1.25rem;
+}
+
+.reference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+}
+
+/* Markdown Tables & Code Mobile Scroll */
+.markdown-body table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+}
+
+.markdown-body th, .markdown-body td {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.markdown-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   Mobile Breakpoints (<= 768px Tablet & <= 640px Mobile Phone)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .navbar-header-root {
+    padding: 0.75rem 1rem;
+  }
+
+  .navbar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .navbar-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .navbar-badges-wrap {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .navbar-badges-wrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-container, .report-container {
+    margin-top: 1.25rem;
+    padding: 0 1rem;
+  }
+
+  .card-padding-lg {
+    padding: 1.35rem 1.15rem;
+    border-radius: 14px;
+  }
+
+  .card-padding-md {
+    padding: 1.15rem 1rem;
+    border-radius: 12px;
+  }
+
+  .stages-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Controls Stack on Mobile */
+  .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .mode-selector-wrap {
+    width: 100%;
+    display: flex;
+  }
+
+  .mode-selector-wrap button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.55rem 0.6rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap;
+  }
+
+  .action-buttons-group {
+    width: 100%;
+    display: flex;
+    gap: 0.65rem;
+  }
+
+  .action-buttons-group button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.7rem 1rem !important;
+  }
+
+  .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  /* Progress Bar & Header */
+  .progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .progress-header h3 {
+    font-size: 1.1rem !important;
+  }
+
+  .terminal-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  /* Metrics Summary on Small Screen */
+  .metrics-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  /* Report Actions on Mobile */
+  .report-buttons-row {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .report-buttons-row button,
+  .report-buttons-row a {
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    padding: 0.65rem 1rem !important;
+  }
+
+  .report-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .reference-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .reference-row a {
+    align-self: flex-start;
+  }
+
+  /* Input fields avoid auto-zoom on iOS (font-size >= 16px) */
+  textarea, input[type="text"], select {
+    font-size: 16px !important;
+  }
+}
+

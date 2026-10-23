@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ResearchSessionState } from '../types/research';
-import { Loader2, CheckCircle2, AlertCircle, FileText, Globe, ShieldCheck, Cpu } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, FileText, Globe, ShieldCheck, Cpu, XCircle, Search, CheckSquare } from 'lucide-react';
 
 interface ResearchProgressProps {
   session: ResearchSessionState;
@@ -8,44 +8,15 @@ interface ResearchProgressProps {
 }
 
 const STAGES = [
-  { id: 'planning', label: 'Stage A: Research Planner', icon: Cpu, desc: 'Decomposing query into subquestions & vectors' },
-  { id: 'searching', label: 'Stage B & C: Web Researcher', icon: Globe, desc: 'Querying search engines & fetching HTML content' },
-  { id: 'evaluating', label: 'Stage D: Source Evaluator', icon: ShieldCheck, desc: 'Rating publisher authority, relevance & recency' },
-  { id: 'synthesizing', label: 'Stage E & F: Synthesizer', icon: FileText, desc: 'Extracting evidence & building cited report' },
+  { id: 'planning', label: '1. Research Planning', icon: Cpu, desc: 'Decomposing query into subquestions & search queries' },
+  { id: 'searching', label: '2. Multi-Vector Web Search', icon: Search, desc: 'Querying search engines across distinct topic angles' },
+  { id: 'fetching', label: '3. Safe Content Extraction', icon: Globe, desc: 'Fetching HTML pages, SSRF validation & cleaning text' },
+  { id: 'evaluating', label: '4. Semantic Source Evaluation', icon: ShieldCheck, desc: 'Scoring relevance, authority & rejecting homonyms' },
+  { id: 'extracting', label: '5. Evidence Extraction', icon: CheckSquare, desc: 'Extracting atomic claims & cross-source corroboration' },
+  { id: 'synthesizing', label: '6. Grounded Report Synthesis', icon: FileText, desc: 'Assembling executive report with verifiable citations' },
 ];
 
-const STAGE_ACTIVITIES: Record<string, string[]> = {
-  planning: [
-    'Parsing research intent & scoping key investigative vectors...',
-    'Generating targeted multi-vector search queries...',
-    'Setting temporal and technical scope boundaries...',
-  ],
-  searching: [
-    'Querying DuckDuckGo across multiple subquestion vectors...',
-    'Traversing web results & fetching live HTML article payloads...',
-    'Extracting clean text & stripping advertisement noise...',
-    'Cross-indexing domain authority & publisher metadata...',
-  ],
-  evaluating: [
-    'Assessing publisher authority & domain credibility...',
-    'Scoring source relevance against research intent...',
-    'Triangulating cross-source corroboration...',
-  ],
-  extracting: [
-    'Extracting factual evidence & technical claims...',
-    'Isolating numerical metrics, dates & direct quotes...',
-    'Mapping evidence excerpts to research subquestions...',
-  ],
-  synthesizing: [
-    'Structuring multi-section executive technical whitepaper...',
-    'Embedding verified inline citations [1], [2]...',
-    'Compiling conflicting evidence & key strategic findings...',
-    'Formatting high-resolution publication PDF export...',
-  ],
-};
-
-export const ResearchProgress: React.FC<ResearchProgressProps> = ({ session }) => {
-  // Live elapsed seconds counter that ticks every 1 second
+export const ResearchProgress: React.FC<ResearchProgressProps> = ({ session, onCancel }) => {
   const [elapsed, setElapsed] = useState<number>(() => {
     if (session.created_at) {
       const start = new Date(session.created_at).getTime();
@@ -55,8 +26,7 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ session }) =
     return 0;
   });
 
-  // Dynamic rotating micro-activity status
-  const [activityIndex, setActivityIndex] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,104 +36,128 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ session }) =
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const activityTimer = setInterval(() => {
-      setActivityIndex((prev) => prev + 1);
-    }, 2800);
-
-    return () => clearInterval(activityTimer);
-  }, []);
-
-  const getStageStatus = (stageId: string) => {
-    const stageOrder = ['pending', 'planning', 'searching', 'extracting', 'evaluating', 'synthesizing', 'completed'];
-    const currentIndex = stageOrder.indexOf(session.status);
-    const targetIndex = stageOrder.indexOf(stageId);
-
-    if (session.status === 'failed') return 'error';
-    if (session.status === 'completed') return 'completed';
-    if (currentIndex > targetIndex) return 'completed';
-    if (currentIndex === targetIndex) return 'active';
-    return 'pending';
-  };
-
-  const getProgressPercentage = () => {
-    switch (session.status) {
-      case 'planning': return 25;
-      case 'searching': return 50;
-      case 'extracting': return 65;
-      case 'evaluating': return 80;
-      case 'synthesizing': return 92;
-      case 'completed': return 100;
-      case 'failed': return 100;
-      default: return 15;
+  const handleCancelClick = async () => {
+    if (onCancel) {
+      setCancelling(true);
+      try {
+        await onCancel();
+      } finally {
+        setCancelling(false);
+      }
     }
   };
 
-  const currentActivities = STAGE_ACTIVITIES[session.status] || STAGE_ACTIVITIES.searching;
-  const currentAction = currentActivities[activityIndex % currentActivities.length];
+  const getStageStatus = (stageId: string) => {
+    if (session.status === 'failed') return 'error';
+    if (session.status === 'cancelled') return 'cancelled';
+    if (session.status === 'completed') return 'completed';
+
+    const completedStages = session.completed_stages || [];
+    if (completedStages.includes(stageId)) return 'completed';
+
+    if (session.status === stageId) return 'active';
+    if (session.status === 'searching' && (stageId === 'searching' || stageId === 'fetching')) {
+      return stageId === 'searching' ? 'active' : 'pending';
+    }
+    return 'pending';
+  };
+
+  const progressPercent = session.progress_percent ?? (
+    session.status === 'completed' ? 100 :
+    session.status === 'synthesizing' ? 90 :
+    session.status === 'extracting' ? 70 :
+    session.status === 'evaluating' ? 55 :
+    session.status === 'searching' ? 30 :
+    session.status === 'planning' ? 10 : 5
+  );
 
   return (
-    <div style={{ maxWidth: '900px', margin: '3rem auto 0', padding: '0 1.5rem' }}>
-      <div className="glass-card" style={{ padding: '2.5rem' }}>
-        {/* Header with live pulsing radar indicator */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '1rem'
-        }}>
+    <div className="page-container">
+      <div className="glass-card card-padding-lg">
+        {/* Header */}
+        <div className="progress-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.2rem' }}>
-              <span className="radar-dot" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.3rem' }}>
+              {session.status === 'cancelled' ? (
+                <XCircle size={14} color="#EF4444" />
+              ) : session.status === 'failed' ? (
+                <AlertCircle size={14} color="#EF4444" />
+              ) : (
+                <span className="radar-dot" />
+              )}
               <span style={{
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                color: 'var(--accent-cyan)',
+                color: session.status === 'cancelled' ? '#EF4444' : 'var(--accent-cyan)',
                 letterSpacing: '0.06em'
               }}>
-                Autonomous Pipeline Live & Active
+                {session.status === 'cancelled' ? 'Research Cancelled' : 'Autonomous Pipeline Active'}
               </span>
             </div>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#FFFFFF', marginTop: '0.2rem', lineHeight: 1.4 }}>
-              Investigating: "{session.question}"
+            <h3 style={{ fontSize: 'clamp(1.1rem, 3.5vw, 1.35rem)', fontWeight: 700, color: '#FFFFFF', marginTop: '0.2rem', lineHeight: 1.35 }}>
+              "{session.question}"
             </h3>
           </div>
 
-          {/* Mode Pill */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '0.35rem 0.85rem',
-            borderRadius: '20px',
-            background: 'rgba(139, 92, 246, 0.15)',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            color: '#C084FC',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            textTransform: 'capitalize',
-            flexShrink: 0
-          }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C084FC' }} />
-            {session.mode} Mode
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '20px',
+              background: 'rgba(139, 92, 246, 0.15)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              color: '#C084FC',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              textTransform: 'capitalize',
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C084FC' }} />
+              {session.mode} Mode
+            </div>
+
+            {onCancel && session.status !== 'completed' && session.status !== 'failed' && session.status !== 'cancelled' && (
+              <button
+                onClick={handleCancelClick}
+                disabled={cancelling}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#F87171',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  transition: 'background 0.2s',
+                }}
+              >
+                {cancelling ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                <span>{cancelling ? 'Cancelling...' : 'Cancel Job'}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Progress Bar with Moving Shimmer */}
+        {/* Real Progress Bar */}
         <div style={{ marginBottom: '1.75rem' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: '0.85rem',
+            fontSize: '0.82rem',
             color: 'var(--text-secondary)',
-            marginBottom: '0.5rem'
+            marginBottom: '0.5rem',
+            flexWrap: 'wrap',
+            gap: '0.35rem'
           }}>
             <span>Current Stage: <strong style={{ color: '#FFFFFF' }}>{session.current_stage || session.status}</strong></span>
-            <span style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{getProgressPercentage()}% Complete</span>
+            <span style={{ fontWeight: 700, color: 'var(--accent-cyan)' }}>{progressPercent}% Complete</span>
           </div>
 
           <div style={{
@@ -177,189 +171,131 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ session }) =
               className="progress-bar-animated"
               style={{
                 height: '100%',
-                width: `${getProgressPercentage()}%`,
+                width: `${progressPercent}%`,
                 borderRadius: '4px',
-                transition: 'width 0.6s ease-in-out',
+                transition: 'width 0.5s ease-in-out',
                 boxShadow: '0 0 16px rgba(59, 130, 246, 0.6)'
               }}
             />
           </div>
         </div>
 
-        {/* Live Terminal / Micro-Activity Action Strip */}
-        <div style={{
+        {/* Real Event Live Terminal Strip */}
+        <div className="terminal-strip" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          borderRadius: '10px',
-          padding: '0.65rem 1rem',
+          padding: '0.75rem 1rem',
+          background: 'rgba(15, 23, 42, 0.9)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)',
           marginBottom: '1.75rem'
         }}>
-          <Loader2 size={16} className="animate-spin" color="#06B6D4" style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1, fontSize: '0.82rem', color: '#E2E8F0', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ color: '#06B6D4', fontWeight: 700 }}>[AGENT ACTIVE] </span>
-            {currentAction}
+          {session.status !== 'completed' && session.status !== 'failed' && session.status !== 'cancelled' ? (
+            <Loader2 size={16} className="animate-spin" color="#06B6D4" style={{ flexShrink: 0 }} />
+          ) : session.status === 'completed' ? (
+            <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+          ) : (
+            <AlertCircle size={16} color="#EF4444" style={{ flexShrink: 0 }} />
+          )}
+
+          <div style={{ flex: 1, fontSize: '0.82rem', color: '#E2E8F0', fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>
+            <span style={{ color: '#06B6D4', fontWeight: 700 }}>[ACTUAL STATUS] </span>
+            {session.current_stage}
           </div>
+
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '0.72rem',
-            color: '#34D399',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
+            fontSize: '0.75rem',
+            color: '#94A3B8',
+            fontFamily: 'var(--font-mono)',
+            flexShrink: 0
           }}>
-            <span className="radar-dot" style={{ width: '6px', height: '6px' }} />
-            Processing
+            <span>Elapsed: {elapsed}s</span>
+          </div>
+        </div>
+
+        {/* Real Metrics Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: '0.75rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ padding: '0.85rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Queries Completed</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#60A5FA' }}>
+              {session.completed_queries_count ?? 0} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ {session.total_queries_count || '-'}</span>
+            </div>
+          </div>
+
+          <div style={{ padding: '0.85rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Sources Evaluated</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#34D399' }}>
+              {session.sources_count}
+            </div>
+          </div>
+
+          <div style={{ padding: '0.85rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Irrelevant Rejected</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F87171' }}>
+              {session.rejected_sources_count ?? 0}
+            </div>
+          </div>
+
+          <div style={{ padding: '0.85rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Evidence Claims</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#C084FC' }}>
+              {session.findings_count}
+            </div>
           </div>
         </div>
 
         {/* Pipeline Stage Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-          {STAGES.map((s) => {
-            const status = getStageStatus(s.id);
-            const Icon = s.icon;
-
-            let cardBg = 'rgba(15, 23, 42, 0.4)';
-            let borderColor = 'var(--border-color)';
-            let iconColor = 'var(--text-muted)';
-            let cardClass = '';
-
-            if (status === 'active') {
-              cardBg = 'rgba(59, 130, 246, 0.12)';
-              borderColor = 'rgba(59, 130, 246, 0.6)';
-              iconColor = '#60A5FA';
-              cardClass = 'stage-card-active';
-            } else if (status === 'completed') {
-              cardBg = 'rgba(16, 185, 129, 0.08)';
-              borderColor = 'rgba(16, 185, 129, 0.25)';
-              iconColor = '#34D399';
-            } else if (status === 'error') {
-              cardBg = 'rgba(239, 68, 68, 0.1)';
-              borderColor = 'rgba(239, 68, 68, 0.3)';
-              iconColor = '#F87171';
-            }
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+          {STAGES.map((stg) => {
+            const status = getStageStatus(stg.id);
+            const Icon = stg.icon;
 
             return (
               <div
-                key={s.id}
-                className={cardClass}
+                key={stg.id}
                 style={{
-                  padding: '1.1rem 1.25rem',
-                  borderRadius: '12px',
-                  background: cardBg,
-                  border: `1px solid ${borderColor}`,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.85rem',
-                  transition: 'all 0.3s'
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  background: status === 'active'
+                    ? 'rgba(59, 130, 246, 0.12)'
+                    : status === 'completed'
+                    ? 'rgba(16, 185, 129, 0.08)'
+                    : 'rgba(255, 255, 255, 0.02)',
+                  border: status === 'active'
+                    ? '1px solid rgba(59, 130, 246, 0.4)'
+                    : status === 'completed'
+                    ? '1px solid rgba(16, 185, 129, 0.25)'
+                    : '1px solid var(--border-color)',
+                  transition: 'all 0.3s ease',
                 }}
               >
-                <div style={{ marginTop: '0.1rem', flexShrink: 0 }}>
-                  {status === 'active' ? (
-                    <Loader2 size={20} className="animate-spin" color={iconColor} />
-                  ) : status === 'completed' ? (
-                    <CheckCircle2 size={20} color={iconColor} />
-                  ) : status === 'error' ? (
-                    <AlertCircle size={20} color={iconColor} />
-                  ) : (
-                    <Icon size={20} color={iconColor} />
-                  )}
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h4 style={{
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      color: status === 'active' ? '#FFFFFF' : status === 'completed' ? '#D1D5DB' : 'var(--text-muted)'
-                    }}>
-                      {s.label}
-                    </h4>
-
-                    {/* Active audio visualizer equalizer bars */}
-                    {status === 'active' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px', height: '16px' }}>
-                        <div className="soundwave-bar" />
-                        <div className="soundwave-bar" />
-                        <div className="soundwave-bar" />
-                        <div className="soundwave-bar" />
-                      </div>
-                    )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Icon size={16} color={status === 'active' ? '#60A5FA' : status === 'completed' ? '#34D399' : '#64748B'} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: status === 'active' ? '#FFFFFF' : status === 'completed' ? '#E2E8F0' : '#94A3B8' }}>
+                      {stg.label}
+                    </span>
                   </div>
 
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    {s.desc}
-                  </p>
+                  {status === 'active' && <Loader2 size={14} className="animate-spin" color="#60A5FA" />}
+                  {status === 'completed' && <CheckCircle2 size={14} color="#34D399" />}
                 </div>
+
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
+                  {stg.desc}
+                </p>
               </div>
             );
           })}
-        </div>
-
-        {/* Live Metrics Row with Live Ticking Elapsed Timer */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1rem',
-          background: 'rgba(15, 23, 42, 0.85)',
-          padding: '1.25rem 1.5rem',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color)',
-          textAlign: 'center'
-        }}>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#60A5FA' }}>
-              {session.sources_count || 0}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.15rem' }}>
-              {session.sources_count > 0 ? 'Web Sources Evaluated' : 'Scanning Web Sources'}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#C084FC' }}>
-              {session.findings_count || 0}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '0.15rem' }}>
-              {session.findings_count > 0 ? 'Verifiable Claims Found' : 'Extracting Evidence Claims'}
-            </div>
-          </div>
-
-          <div>
-            <div style={{
-              fontSize: '1.5rem',
-              fontWeight: 800,
-              color: '#34D399',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}>
-              <span>
-                {session.duration_seconds && (session.status === 'completed' || session.status === 'failed')
-                  ? `${session.duration_seconds.toFixed(1)}s`
-                  : `${elapsed}s`}
-              </span>
-            </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#10B981',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              marginTop: '0.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '5px'
-            }}>
-              <span className="radar-dot" style={{ width: '5px', height: '5px' }} />
-              Live Elapsed Timer
-            </div>
-          </div>
         </div>
       </div>
     </div>
