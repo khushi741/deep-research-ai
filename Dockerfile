@@ -1,4 +1,4 @@
-﻿# Single-stage lightweight Python container
+# Single-stage lightweight Python container
 # React frontend is pre-built in frontend/react-app/dist, eliminating Node.js & npm memory overhead
 FROM python:3.11-slim
 WORKDIR /app

@@ -25,6 +25,7 @@ orchestrator = ResearchOrchestrator()
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
+@router.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     """Returns application health status and API key configuration state."""
     gemini_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")

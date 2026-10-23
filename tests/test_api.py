@@ -35,20 +35,25 @@ def test_list_research_sessions():
     assert isinstance(response.json(), list)
 
 
+from unittest.mock import patch, AsyncMock
+from app.api.routes import orchestrator
+
+
 def test_cancel_research_session():
-    # Create a session first
-    create_res = client.post("/api/v1/research", json={"question": "What is solid-state battery commercialization timeline?", "mode": "quick"})
-    assert create_res.status_code == 200
-    sid = create_res.json()["id"]
+    # Mock background task so it doesn't execute live search in unit tests
+    with patch.object(orchestrator, "run_research", new_callable=AsyncMock):
+        create_res = client.post("/api/v1/research", json={"question": "What is solid-state battery commercialization timeline?", "mode": "quick"})
+        assert create_res.status_code == 200
+        sid = create_res.json()["id"]
 
-    cancel_res = client.post(f"/api/v1/research/{sid}/cancel")
-    assert cancel_res.status_code == 200
-    assert cancel_res.json()["status"] == "cancelled"
+        cancel_res = client.post(f"/api/v1/research/{sid}/cancel")
+        assert cancel_res.status_code == 200
+        assert cancel_res.json()["status"] == "cancelled"
 
-    # Status check
-    st_res = client.get(f"/api/v1/research/{sid}")
-    assert st_res.status_code == 200
-    assert st_res.json()["status"] == "cancelled"
+        # Status check
+        st_res = client.get(f"/api/v1/research/{sid}")
+        assert st_res.status_code == 200
+        assert st_res.json()["status"] == "cancelled"
 
 
 def test_report_export_endpoints():
